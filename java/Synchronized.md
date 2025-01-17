@@ -153,6 +153,54 @@
 
 ### 2) Volatile
 
+<img src="https://github.com/user-attachments/assets/fcd801ed-6cd2-4b6b-8d31-944875111486" width="400">
+
+CPU에는 데이터의 빠른 재사용을 위해 Main memory에서 읽어온 데이터를 CPU내의 캐시에 저장해둔다. 
+
+따라서 작업실행 도중에, Main memory의 값이 변경되어도 캐시에 저장된 값을 읽어, 변경되었음을 알지 못해 문제가 발생할수 있습니다.
+
+```java
+public class ThreadTest {
+    boolean running = true;
+
+    public void test() {
+        new Thread(()->{
+                int count = 0;
+                while (running) {
+                    count++;
+                }
+                System.out.println("Thread 1 finished. Counted up to " + count);
+            }
+        ).start();
+        new Thread(()-> {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ignored) {
+                }
+                System.out.println("Thread 2 finishing");
+                running = false;
+            }
+        ).start();
+    }
+
+    public static void main(String[] args) {
+        new ThreadTest().test();
+    }
+}
+```
+위의 코드에서 첫번째 쓰레드는 두번째 쓰레드에 의해 루프가 종료될것 같지만 위에서 설명한 문제때문에 무한루프를 돌게 됩니다.
+
+이때 Volatile을 사용하게되면 해당 변수의 값을 캐시가 아닌 Main memory를 참조하게 되어 문제를 해결할수 있습니다.
+
+**하지만 Race Condition을 해결하는 것은 아닙니다!!**
+
+<img src="https://github.com/user-attachments/assets/66ccfd0f-d784-4fc7-ba07-8e43a1533b25" width="400">
+
+Main Memory에서 값을 가져와서 작업을 하지만, 각 쓰레드가 Main Memory에 반영하기 전에 값을 가져온다면 2를 기대했지만, 결국 1을 반영하게될것입니다.
+
+따라서 만약 원자성을 지키고 싶다면 Volatile이 아닌 Synchronized를 사용해야합니다. 
+
+**정리**
 - 가시성 문제를 동기화시켜 줌
     - 멀티 스레드나 멀티 코어 환경에서 각 CPU는 메인 메모리 변수 값을 참조하지 않고, 각 CPU의 캐시 영역에서 메모리를 참고함
     - 멀티 스레드 환경에서 메인 메모리와 CPU 캐시의 값이 다른 경우 발생할 수 있는 문제를 가시성 문제라고 함
@@ -160,8 +208,8 @@
     - 여러 스레드가 각각 `non-volatile` 값을 읽을 때 CPU 캐시에 저장된 값이 다를 경우, 값의 불일치 발생(가시성 문제)
 - `volatile` 키워드가 붙은 자원은 read, write 작업이 CPU Cache Memory가 아닌 Main Memory에서 이뤄짐
     - 메인 메모리에 저장하고 읽어오기 때문에 값의 불일치(가시성 문제)를 해결할 수 있음
-- 여러 스레드에서 메인 메모리에 있는 공유 자원에 동시에 접근할 수 있으므로, 여러 스레드에서 수정하게 되면 동시 접근 문제를 해결할 수 없음
-    
+- 여러 쓰레드가 동시에 쓰기작업을 하는 경우에 원자성을 지키려고 volatile을 사용하는 것은 적합하지 않다.
+
 <br/>
 
 
